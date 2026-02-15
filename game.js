@@ -16,6 +16,16 @@ const STEP_TIME = 1000 / LOGIC_RATE;
 
 // ... (classes omitted for brevity, logic remains same)
 
+class Vector2 {
+    constructor(x, y) { this.x = x; this.y = y; }
+    add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
+    sub(v) { return new Vector2(this.x - v.x, this.y - v.y); }
+    mult(s) { return new Vector2(this.x * s, this.y * s); }
+    equals(v) { return this.x === v.x && this.y === v.y; }
+    lerp(v, t) { return new Vector2(this.x + (v.x - this.x) * t, this.y + (v.y - this.y) * t); }
+    dist(v) { return Math.sqrt(Math.pow(v.x - this.x, 2) + Math.pow(v.y - this.y, 2)); }
+}
+
 class Game {
     constructor() {
         this.resize();
@@ -77,11 +87,6 @@ class Game {
             this.food.gridH = this.gridRows;
         }
     }
-    constructor(x, y) { this.x = x; this.y = y; }
-    add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
-    sub(v) { return new Vector2(this.x - v.x, this.y - v.y); }
-    mult(s) { return new Vector2(this.x * s, this.y * s); }
-    equals(v) { return this.x === v.x && this.y === v.y; }
     lerp(v, t) { return new Vector2(this.x + (v.x - this.x) * t, this.y + (v.y - this.y) * t); }
     dist(v) { return Math.sqrt(Math.pow(v.x - this.x, 2) + Math.pow(v.y - this.y, 2)); }
 }
@@ -407,14 +412,16 @@ class PowerUp {
 
 class Game {
     constructor() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
         this.state = 'MENU'; // MENU, PLAYING, GAMEOVER, INPUT_SCORE
         this.score = 0;
         this.highScore = localStorage.getItem('snake_highscore') || 0;
 
-        this.gridCols = Math.floor(canvas.width / GRID_SIZE);
-        this.gridRows = Math.floor(canvas.height / GRID_SIZE);
+        // gridCols/Rows set in resize()
 
-        this.snake = new Snake(this.gridCols, this.gridRows); // Changed from (5,5) to use gridCols/Rows
+        this.snake = new Snake(this.gridCols, this.gridRows);
         this.food = new Food(this.gridCols, this.gridRows);
         this.particles = [];
         this.powerUps = []; // Active items on map
@@ -426,7 +433,9 @@ class Game {
             double: 0
         };
 
-        this.grid = new LivingGrid(canvas.width, canvas.height); // Changed from Grid to LivingGrid
+        // Initialize grid with logical size (CSS pixels), not physical pixels
+        // The context scale handles the DPI
+        this.grid = new LivingGrid(canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
 
         this.lastTime = 0;
         this.accumulator = 0;
@@ -442,6 +451,34 @@ class Game {
 
         this.loop = this.loop.bind(this);
         requestAnimationFrame(this.loop);
+    }
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+
+        // Scale context to match DPI
+        ctx.resetTransform(); // Reset before scaling
+        ctx.scale(dpr, dpr);
+
+        // Grid calculations use CSS pixels
+        this.gridCols = Math.floor(window.innerWidth / GRID_SIZE);
+        this.gridRows = Math.floor(window.innerHeight / GRID_SIZE);
+
+        if (this.grid) {
+            this.grid.width = window.innerWidth;
+            this.grid.height = window.innerHeight;
+            this.grid.init();
+        }
+        if (this.snake) {
+            this.snake.gridW = this.gridCols;
+            this.snake.gridH = this.gridRows;
+        }
+        if (this.food) {
+            this.food.gridW = this.gridCols;
+            this.food.gridH = this.gridRows;
+        }
     }
 
     handleBeat(type) {

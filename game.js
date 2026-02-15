@@ -430,6 +430,10 @@ class Game {
     bindInput() {
         // Keyboard
         document.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape') {
+                this.togglePause();
+                return;
+            }
             if (this.state === 'MENU' || this.state === 'GAMEOVER') {
                 if (e.code === 'Space') this.startGame();
             } else if (this.state === 'PLAYING') {
@@ -443,6 +447,26 @@ class Game {
         // Touch
         document.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
         document.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+
+        // Pause Button
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.togglePause();
+            });
+            pauseBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.togglePause();
+            });
+        }
+
+        // Touch resume on pause screen
+        document.getElementById('pause-screen').addEventListener('touchstart', () => {
+            if (this.state === 'PAUSED') this.togglePause();
+        });
     }
 
     handleTouchStart(e) {
@@ -507,9 +531,25 @@ class Game {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); // Ensure all are hidden
 
-        audio.ctx.resume();
+        if (audio.ctx.state === 'suspended') audio.ctx.resume();
         audio.startAmbience();
         audio.playStart();
+    }
+
+    togglePause() {
+        if (this.state === 'PLAYING') {
+            this.state = 'PAUSED';
+            audio.ctx.suspend();
+            document.getElementById('pause-screen').classList.remove('hidden');
+            document.getElementById('pause-screen').classList.add('active');
+        } else if (this.state === 'PAUSED') {
+            this.state = 'PLAYING';
+            audio.ctx.resume();
+            document.getElementById('pause-screen').classList.remove('active');
+            document.getElementById('pause-screen').classList.add('hidden');
+            // Reset time to prevent huge delta jump
+            this.lastTime = performance.now();
+        }
     }
 
     gameOver() {
@@ -640,7 +680,7 @@ class Game {
         this.grid.draw(ctx);
         ctx.restore();
 
-        if (this.state === 'PLAYING' || this.state === 'GAMEOVER' || this.state === 'INPUT_SCORE') {
+        if (this.state === 'PLAYING' || this.state === 'PAUSED' || this.state === 'GAMEOVER' || this.state === 'INPUT_SCORE') {
             this.food.draw(ctx, performance.now());
 
             // Draw PowerUps
@@ -662,7 +702,7 @@ class Game {
     }
 
     drawEffectsUI() {
-        if (this.state !== 'PLAYING') return;
+        if (this.state !== 'PLAYING' && this.state !== 'PAUSED') return;
 
         let y = 100;
         for (let key in this.effects) {
@@ -688,18 +728,20 @@ class Game {
         this.lastTime = time;
         if (dt > 100) dt = 100; // Cap lag
 
-        this.accumulator += dt;
+        if (this.state !== 'PAUSED') {
+            this.accumulator += dt;
 
-        // Dynamic speed based on slow-mo
-        let currentStep = STEP_TIME;
-        if (this.effects.slowMo > 0) currentStep = STEP_TIME * 1.5; // Slower
+            // Dynamic speed based on slow-mo
+            let currentStep = STEP_TIME;
+            if (this.effects.slowMo > 0) currentStep = STEP_TIME * 1.5; // Slower
 
-        while (this.accumulator >= currentStep) {
-            this.tick();
-            this.accumulator -= currentStep;
+            while (this.accumulator >= currentStep) {
+                this.tick();
+                this.accumulator -= currentStep;
+            }
         }
 
-        const alpha = this.accumulator / currentStep;
+        const alpha = (this.state === 'PAUSED') ? 0 : (this.accumulator / STEP_TIME); // No alpha interp when paused
 
         this.update(dt);
         this.draw(alpha);

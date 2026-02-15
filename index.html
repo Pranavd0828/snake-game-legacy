@@ -15,6 +15,10 @@
 
         <div id="ui-layer">
             <div id="score-display">SCORE<span id="score-value">0</span></div>
+            <button id="pause-btn">
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </button>
 
             <div id="start-screen" class="screen active">
                 <h1>SNAKE</h1>
@@ -48,6 +52,15 @@
                 <p class="subtitle">DATA COLLECTED: <span>0</span></p>
                 <div class="key-hint" style="margin-top: 60px;">
                     <span class="key">SPACE OR TAP TO REBOOT</span>
+                </div>
+            </div>
+
+            <div id="pause-screen" class="screen hidden">
+                <h1>PAUSED</h1>
+                <p class="subtitle">SYSTEM SUSPENDED</p>
+                <div class="key-hint">
+                    <span class="key">ESC</span>
+                    <span class="key">TAP TO RESUME</span>
                 </div>
             </div>
         </div>

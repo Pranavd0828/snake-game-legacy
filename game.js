@@ -10,11 +10,73 @@ const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 
 // CONFIG
-const GRID_SIZE = 30; // Larger grid for cleaner look
-const LOGIC_RATE = 15; // Ticks per second (Gameplay speed)
+const GRID_SIZE = 20; // Reverted to standard size for better proportion
+const LOGIC_RATE = 15;
 const STEP_TIME = 1000 / LOGIC_RATE;
 
-class Vector2 {
+// ... (classes omitted for brevity, logic remains same)
+
+class Game {
+    constructor() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
+        this.state = 'MENU';
+        this.score = 0;
+        this.highScore = localStorage.getItem('snake_highscore') || 0;
+
+        // Grid cols/rows calculation moved to resize()
+
+        this.snake = new Snake(this.gridCols, this.gridRows);
+        this.food = new Food(this.gridCols, this.gridRows);
+        this.particles = [];
+        this.powerUps = [];
+
+        this.effects = {
+            slowMo: 0,
+            magnet: 0,
+            ghost: 0,
+            double: 0
+        };
+
+        this.grid = new LivingGrid(canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+
+        this.lastTime = 0;
+        this.accumulator = 0;
+
+        this.beatScale = 1.0;
+        this.audioEnabled = false;
+
+        this.bindInput();
+
+        audio.onBeat = (type) => this.handleBeat(type);
+
+        this.loop = this.loop.bind(this);
+        requestAnimationFrame(this.loop);
+    }
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+
+        // Scale context to match DPI
+        ctx.scale(dpr, dpr);
+
+        // Grid calculations use CSS pixels
+        this.gridCols = Math.floor(window.innerWidth / GRID_SIZE);
+        this.gridRows = Math.floor(window.innerHeight / GRID_SIZE);
+
+        if (this.grid) this.grid.init();
+        if (this.snake) {
+            this.snake.gridW = this.gridCols;
+            this.snake.gridH = this.gridRows;
+        }
+        if (this.food) {
+            this.food.gridW = this.gridCols;
+            this.food.gridH = this.gridRows;
+        }
+    }
     constructor(x, y) { this.x = x; this.y = y; }
     add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
     sub(v) { return new Vector2(this.x - v.x, this.y - v.y); }

@@ -26,70 +26,7 @@ class Vector2 {
     dist(v) { return Math.sqrt(Math.pow(v.x - this.x, 2) + Math.pow(v.y - this.y, 2)); }
 }
 
-class Game {
-    constructor() {
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
 
-        this.state = 'MENU';
-        this.score = 0;
-        this.highScore = localStorage.getItem('snake_highscore') || 0;
-
-        // Grid cols/rows calculation moved to resize()
-
-        this.snake = new Snake(this.gridCols, this.gridRows);
-        this.food = new Food(this.gridCols, this.gridRows);
-        this.particles = [];
-        this.powerUps = [];
-
-        this.effects = {
-            slowMo: 0,
-            magnet: 0,
-            ghost: 0,
-            double: 0
-        };
-
-        this.grid = new LivingGrid(canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
-
-        this.lastTime = 0;
-        this.accumulator = 0;
-
-        this.beatScale = 1.0;
-        this.audioEnabled = false;
-
-        this.bindInput();
-
-        audio.onBeat = (type) => this.handleBeat(type);
-
-        this.loop = this.loop.bind(this);
-        requestAnimationFrame(this.loop);
-    }
-
-    resize() {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-
-        // Scale context to match DPI
-        ctx.scale(dpr, dpr);
-
-        // Grid calculations use CSS pixels
-        this.gridCols = Math.floor(window.innerWidth / GRID_SIZE);
-        this.gridRows = Math.floor(window.innerHeight / GRID_SIZE);
-
-        if (this.grid) this.grid.init();
-        if (this.snake) {
-            this.snake.gridW = this.gridCols;
-            this.snake.gridH = this.gridRows;
-        }
-        if (this.food) {
-            this.food.gridW = this.gridCols;
-            this.food.gridH = this.gridRows;
-        }
-    }
-    lerp(v, t) { return new Vector2(this.x + (v.x - this.x) * t, this.y + (v.y - this.y) * t); }
-    dist(v) { return Math.sqrt(Math.pow(v.x - this.x, 2) + Math.pow(v.y - this.y, 2)); }
-}
 
 class Particle {
     constructor(x, y, color) {

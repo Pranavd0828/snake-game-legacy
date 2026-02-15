@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Snake V3</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer">
+            <div id="score-display">SCORE<span id="score-value">0</span></div>
+
+            <div id="start-screen" class="screen active">
+                <h1>SNAKE</h1>
+                <p class="subtitle">PRESS SPACE TO INITIALIZE</p>
+                <div class="key-hint">
+                    <span class="key">WASD</span>
+                    <span class="key">ARROWS</span>
+                </div>
+
+                <div id="leaderboard">
+                    <h3>TOP AGENTS</h3>
+                    <ul id="leaderboard-list">
+                        <!-- Populated by JS -->
+                        <li><span>---</span> <span>000</span></li>
+                        <li><span>---</span> <span>000</span></li>
+                        <li><span>---</span> <span>000</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- New Screen for High Score Entry -->
+            <div id="highscore-screen" class="screen hidden">
+                <h1 style="color: #0ff; text-shadow: 0 0 40px #0ff;">NEW RECORD</h1>
+                <p class="subtitle">ENTER INITIALS</p>
+                <input type="text" id="name-input" maxlength="3" placeholder="_ _ _" autocomplete="off">
+            </div>
+
+            <div id="game-over-screen" class="screen hidden">
+                <h1 style="color: #f0f; text-shadow: 0 0 40px #f0f;">TERMINATED</h1>
+                <p class="subtitle">DATA COLLECTED: <span>0</span></p>
+                <div class="key-hint" style="margin-top: 60px;">
+                    <span class="key">SPACE TO REBOOT</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="game.js"></script>
+</body>
+
+</html>

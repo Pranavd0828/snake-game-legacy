@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&display=swap');
+
+:root {
+    --bg-color: #000;
+    --accent-primary: #0ff;
+    --accent-secondary: #f0f;
+    --glass-surface: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --font-main: 'Rajdhani', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: white;
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    perspective: 1000px;
+}
+
+#score-display {
+    position: absolute;
+    top: 40px;
+    left: 60px;
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    z-index: 10;
+    mix-blend-mode: difference;
+}
+
+#score-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin-left: 10px;
+}
+
+.screen {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: auto;
+}
+
+.screen.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-20px) scale(0.95);
+}
+
+h1 {
+    font-size: 80px;
+    font-weight: 300;
+    letter-spacing: 12px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    background: linear-gradient(to right, #fff, #aaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+}
+
+p.subtitle {
+    font-size: 20px;
+    letter-spacing: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    margin-top: 20px;
+    animation: pulse 3s infinite ease-in-out;
+}
+
+.key-hint {
+    margin-top: 40px;
+    display: flex;
+    gap: 20px;
+    opacity: 0.3;
+}
+
+.key {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Leaderboard Styles */
+#leaderboard {
+    margin-top: 50px;
+    width: 300px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+#leaderboard h3 {
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--accent-primary);
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px var(--accent-primary);
+}
+
+#leaderboard-list {
+    list-style: none;
+    text-align: left;
+}
+
+#leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+#leaderboard-list li:last-child {
+    border-bottom: none;
+}
+
+#leaderboard-list li span:last-child {
+    color: var(--accent-secondary);
+    font-weight: 700;
+}
+
+/* High Score Input */
+#name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #fff;
+    color: #fff;
+    font-family: var(--font-main);
+    font-size: 64px;
+    text-align: center;
+    width: 200px;
+    margin-top: 30px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 15px;
+    text-shadow: 0 0 20px #0ff;
+}
+
+#name-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}

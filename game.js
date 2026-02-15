@@ -299,25 +299,94 @@ class Food {
     }
 }
 
+const POWERUPS = {
+    SLOW_MO: { color: '#00ffff', duration: 5000, label: 'SLOW' },
+    MAGNET: { color: '#ff00ff', duration: 8000, label: 'MAG' },
+    GHOST: { color: '#ffffff', duration: 5000, label: 'GHOST' },
+    DOUBLE: { color: '#ffd700', duration: 10000, label: '2X' }
+};
+
+class PowerUp {
+    constructor(x, y, type) {
+        this.pos = new Vector2(x, y);
+        this.type = type;
+        this.typeInfo = POWERUPS[type];
+        this.pulse = 0;
+    }
+
+    draw(ctx, time) {
+        const cx = this.pos.x * GRID_SIZE + GRID_SIZE / 2;
+        const cy = this.pos.y * GRID_SIZE + GRID_SIZE / 2;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Pulse effect
+        const scale = 1 + Math.sin(time * 0.01) * 0.2;
+        ctx.scale(scale, scale);
+
+        // Glow
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.typeInfo.color;
+
+        // Shape (Diamond)
+        ctx.fillStyle = this.typeInfo.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -GRID_SIZE / 3);
+        ctx.lineTo(GRID_SIZE / 3, 0);
+        ctx.lineTo(0, GRID_SIZE / 3);
+        ctx.lineTo(-GRID_SIZE / 3, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
 class Game {
     constructor() {
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
+        this.state = 'MENU'; // MENU, PLAYING, GAMEOVER, INPUT_SCORE
+        this.score = 0;
+        this.highScore = localStorage.getItem('snake_highscore') || 0;
 
-        this.grid = new LivingGrid(canvas.width, canvas.height);
-        this.snake = new Snake(this.gridCols, this.gridRows);
+        this.gridCols = Math.floor(canvas.width / GRID_SIZE);
+        this.gridRows = Math.floor(canvas.height / GRID_SIZE);
+
+        this.snake = new Snake(this.gridCols, this.gridRows); // Changed from (5,5) to use gridCols/Rows
         this.food = new Food(this.gridCols, this.gridRows);
         this.particles = [];
+        this.powerUps = []; // Active items on map
 
-        this.score = 0;
-        this.state = 'MENU';
+        this.effects = {
+            slowMo: 0,
+            magnet: 0,
+            ghost: 0,
+            double: 0
+        };
+
+        this.grid = new LivingGrid(canvas.width, canvas.height); // Changed from Grid to LivingGrid
 
         this.lastTime = 0;
         this.accumulator = 0;
 
+        // Audio Viz State
+        this.beatScale = 1.0;
+        this.audioEnabled = false;
+
         this.bindInput();
+
+        // Link Audio Beat
+        audio.onBeat = (type) => this.handleBeat(type);
+
         this.loop = this.loop.bind(this);
         requestAnimationFrame(this.loop);
+    }
+
+    handleBeat(type) {
+        if (type === 'KICK') {
+            this.beatScale = 1.2; // Pulse grid
+            // Screen shake or bloom boost could go here
+        }
     }
 
     resize() {
@@ -330,6 +399,7 @@ class Game {
     }
 
     bindInput() {
+        // Keyboard
         document.addEventListener('keydown', (e) => {
             if (this.state === 'MENU' || this.state === 'GAMEOVER') {
                 if (e.code === 'Space') this.startGame();
@@ -340,9 +410,57 @@ class Game {
                 if (e.key === 'ArrowRight' || e.key === 'd') this.snake.direction(1, 0);
             }
         });
+
+        // Touch
+        document.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        document.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+    }
+
+    handleTouchStart(e) {
+        const touch = e.touches[0];
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+
+        if (this.state === 'MENU' || this.state === 'GAMEOVER') {
+            this.isTap = true;
+        }
+    }
+
+    handleTouchEnd(e) {
+        if (this.state === 'MENU' || this.state === 'GAMEOVER') {
+            const touch = e.changedTouches[0];
+            const dx = touch.clientX - this.touchStartX;
+            const dy = touch.clientY - this.touchStartY;
+
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                this.startGame();
+                return;
+            }
+        }
+
+        if (this.state !== 'PLAYING') return;
+
+        const touch = e.changedTouches[0];
+        const diffX = touch.clientX - this.touchStartX;
+        const diffY = touch.clientY - this.touchStartY;
+
+        if (Math.abs(diffX) < 30 && Math.abs(diffY) < 30) return;
+
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) this.snake.direction(1, 0);
+            else this.snake.direction(-1, 0);
+        } else {
+            if (diffY > 0) this.snake.direction(0, 1);
+            else this.snake.direction(0, -1);
+        }
     }
 
     startGame() {
+        if (!this.audioEnabled) {
+            audio.startMusic();
+            this.audioEnabled = true;
+        }
+
         this.snake.gridW = this.gridCols; // Update in case of resize
         this.snake.gridH = this.gridRows;
         this.food.gridW = this.gridCols;
@@ -353,11 +471,12 @@ class Game {
         this.score = 0;
         scoreVal.innerText = '0';
 
+        this.powerUps = [];
+        this.effects = { slowMo: 0, magnet: 0, ghost: 0, double: 0 };
+
         this.state = 'PLAYING';
-        startScreen.classList.remove('active');
-        startScreen.classList.add('hidden');
-        gameOverScreen.classList.remove('active');
-        gameOverScreen.classList.add('hidden');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); // Ensure all are hidden
 
         audio.ctx.resume();
         audio.startAmbience();
@@ -377,26 +496,87 @@ class Game {
     tick() {
         if (this.state !== 'PLAYING') return;
 
-        const res = this.snake.tick();
-
-        if (res.gameOver) {
-            this.handleDeath();
-        } else {
-            // Check Food
-            if (res.head.equals(this.food.pos)) {
-                this.snake.grow();
-                this.food.reposition(this.snake.body);
-                this.score++;
-                scoreVal.innerText = this.score;
-                audio.playEat();
-
-                // Spawn particles
-                const center = this.food.pos.mult(GRID_SIZE).add(new Vector2(GRID_SIZE / 2, GRID_SIZE / 2));
-                for (let i = 0; i < 30; i++) {
-                    this.particles.push(new Particle(center.x, center.y, '#f0f'));
-                }
+        // MAGNET EFFECT
+        if (this.effects.magnet > 0) {
+            const head = this.snake.body[0];
+            const dist = head.dist(this.food.pos);
+            if (dist < 5) { // Range
+                // Move food towards snake
+                this.food.pos.x += (head.x - this.food.pos.x) * 0.1;
+                this.food.pos.y += (head.y - this.food.pos.y) * 0.1;
+                // Clamp to grid approximate
             }
         }
+
+        // Apply Timers
+        for (let key in this.effects) {
+            if (this.effects[key] > 0) this.effects[key] -= STEP_TIME;
+        }
+
+        // Spawn PowerUp Chance
+        if (Math.random() < 0.005 && this.powerUps.length < 2) { // 0.5% per frame
+            this.spawnPowerUp();
+        }
+
+        const res = this.snake.tick();
+
+        // Check Self Collision (unless GHOST)
+        if (res.gameOver && this.effects.ghost <= 0) {
+            this.handleDeath();
+            return;
+        } else if (res.gameOver && this.effects.ghost > 0) {
+            // Check walls still kill? No, we have wrapping. 
+            // Self collision is the only thing tick() returns as gameOver usually.
+            // So we ignore it.
+        }
+
+        // Check Food
+        // Simple distance check incase magnet pulled it off-grid
+        const headPixel = this.snake.body[0].mult(GRID_SIZE);
+        const foodPixel = this.food.pos.mult(GRID_SIZE);
+        if (headPixel.dist(foodPixel) < GRID_SIZE) {
+            this.snake.grow();
+            this.food.reposition(this.snake.body);
+
+            let points = 1;
+            if (this.effects.double > 0) points = 2;
+            this.score += points;
+            scoreVal.innerText = this.score;
+            audio.playEat();
+
+            const center = this.food.pos.mult(GRID_SIZE).add(new Vector2(GRID_SIZE / 2, GRID_SIZE / 2));
+            for (let i = 0; i < 30; i++) {
+                this.particles.push(new Particle(center.x, center.y, '#f0f'));
+            }
+        }
+
+        // Check PowerUps
+        for (let i = this.powerUps.length - 1; i >= 0; i--) {
+            const p = this.powerUps[i];
+            const pPixel = p.pos.mult(GRID_SIZE);
+            if (headPixel.dist(pPixel) < GRID_SIZE) {
+                this.activateEffect(p.type);
+                this.powerUps.splice(i, 1);
+                audio.playPowerUp();
+            }
+        }
+    }
+
+    spawnPowerUp() {
+        const types = Object.keys(POWERUPS);
+        const type = types[Math.floor(Math.random() * types.length)];
+        // Random pos
+        const x = Math.floor(Math.random() * this.gridCols);
+        const y = Math.floor(Math.random() * this.gridRows);
+        this.powerUps.push(new PowerUp(x, y, type));
+    }
+
+    activateEffect(type) {
+        const info = POWERUPS[type];
+        if (type === 'SLOW_MO') this.effects.slowMo = info.duration;
+        if (type === 'MAGNET') this.effects.magnet = info.duration;
+        if (type === 'GHOST') this.effects.ghost = info.duration;
+        if (type === 'DOUBLE') this.effects.double = info.duration;
     }
 
     update(dt) {
@@ -409,6 +589,9 @@ class Game {
             this.grid.update(null);
         }
 
+        // Audio Beat Decay
+        this.beatScale += (1.0 - this.beatScale) * 0.1;
+
         // Particles
         this.particles.forEach(p => p.update());
         this.particles = this.particles.filter(p => p.life > 0);
@@ -416,14 +599,28 @@ class Game {
 
     draw(alpha) {
         // Clear logic
-        ctx.fillStyle = '#000'; // Hard clear
+        ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Grid with Beat Scale
+        ctx.save();
+        // Center zoom
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(this.beatScale, this.beatScale);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
         this.grid.draw(ctx);
+        ctx.restore();
 
         if (this.state === 'PLAYING' || this.state === 'GAMEOVER' || this.state === 'INPUT_SCORE') {
             this.food.draw(ctx, performance.now());
+
+            // Draw PowerUps
+            this.powerUps.forEach(p => p.draw(ctx, performance.now()));
+
+            // Snake visual feedback for effects
+            if (this.effects.ghost > 0) ctx.globalAlpha = 0.5;
             this.snake.draw(ctx, alpha);
+            ctx.globalAlpha = 1.0;
         }
 
         // Particles
@@ -431,7 +628,30 @@ class Game {
         this.particles.forEach(p => p.draw(ctx));
         ctx.globalCompositeOperation = 'source-over';
 
-        // REMOVED VIGNETTE PASS
+        // Draw Active Effects UI
+        this.drawEffectsUI();
+    }
+
+    drawEffectsUI() {
+        if (this.state !== 'PLAYING') return;
+
+        let y = 100;
+        for (let key in this.effects) {
+            if (this.effects[key] > 0) {
+                const ratio = this.effects[key]; // ms
+                const label = POWERUPS[key.toUpperCase()] ? POWERUPS[key.toUpperCase()].label : key.toUpperCase(); // Use label from POWERUPS
+
+                ctx.fillStyle = '#fff';
+                ctx.font = '16px "Orbitron"';
+                ctx.fillText(label, 20, y);
+
+                // Bar
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(80, y - 10, ratio * 0.01, 10);
+
+                y += 30;
+            }
+        }
     }
 
     loop(time) {
@@ -441,12 +661,16 @@ class Game {
 
         this.accumulator += dt;
 
-        while (this.accumulator >= STEP_TIME) {
+        // Dynamic speed based on slow-mo
+        let currentStep = STEP_TIME;
+        if (this.effects.slowMo > 0) currentStep = STEP_TIME * 1.5; // Slower
+
+        while (this.accumulator >= currentStep) {
             this.tick();
-            this.accumulator -= STEP_TIME;
+            this.accumulator -= currentStep;
         }
 
-        const alpha = this.accumulator / STEP_TIME;
+        const alpha = this.accumulator / currentStep;
 
         this.update(dt);
         this.draw(alpha);
@@ -467,14 +691,12 @@ class Game {
     }
 
     showHighScoreScreen() {
-        // Hide others?
         document.getElementById('highscore-screen').classList.remove('hidden');
         document.getElementById('highscore-screen').classList.add('active');
         const input = document.getElementById('name-input');
         input.value = '';
         input.focus();
 
-        // Ensure one-time listener for enter
         const onEnter = (e) => {
             if (e.key === 'Enter') {
                 const name = input.value.toUpperCase() || 'UNK';

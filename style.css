@@ -23,6 +23,20 @@ body {
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    touch-action: none;
+    /* Prevent browser handling of gestures */
+    -webkit-touch-callout: none;
+    /* iOS safari */
+    -webkit-user-select: none;
+    /* Safari */
+    -khtml-user-select: none;
+    /* Konqueror HTML */
+    -moz-user-select: none;
+    /* Old versions of Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */
+    user-select: none;
+    /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
 canvas {
@@ -97,6 +111,28 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+}
+
+@media (max-width: 600px) {
+    h1 {
+        font-size: 48px;
+        letter-spacing: 6px;
+    }
+
+    #score-display {
+        top: 20px;
+        left: 20px;
+        font-size: 14px;
+    }
+
+    #score-value {
+        font-size: 24px;
+    }
+
+    .screen {
+        padding: 20px;
+        width: 90%;
+    }
 }
 
 p.subtitle {

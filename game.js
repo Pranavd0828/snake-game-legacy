@@ -425,14 +425,7 @@ class Game {
         }
     }
 
-    resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        this.gridCols = Math.floor(canvas.width / GRID_SIZE);
-        this.gridRows = Math.floor(canvas.height / GRID_SIZE);
-        // If mid-game, might need to clamp snake? Ignore for now.
-        if (this.grid) this.grid.init();
-    }
+
 
     bindInput() {
         // Keyboard

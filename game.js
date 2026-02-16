@@ -464,9 +464,38 @@ class Game {
         }
 
         // Touch resume on pause screen
-        document.getElementById('pause-screen').addEventListener('touchstart', () => {
-            if (this.state === 'PAUSED') this.togglePause();
-        });
+        const pauseScreen = document.getElementById('pause-screen');
+        if (pauseScreen) {
+            pauseScreen.addEventListener('touchstart', (e) => {
+                // Only resume if tapping background, buttons handle themselves
+                if (this.state === 'PAUSED') {
+                    // Simple debounce or check target
+                    this.togglePause();
+                }
+            });
+        }
+
+        // Mobile D-Pad
+        this.bindDPad('btn-up', 0, -1);
+        this.bindDPad('btn-down', 0, 1);
+        this.bindDPad('btn-left', -1, 0);
+        this.bindDPad('btn-right', 1, 0);
+    }
+
+    bindDPad(id, x, y) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+
+        const trigger = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.state === 'PLAYING') {
+                this.snake.direction(x, y);
+            }
+        };
+
+        btn.addEventListener('touchstart', trigger, { passive: false });
+        btn.addEventListener('mousedown', trigger); // Fallback for testing
     }
 
     handleTouchStart(e) {
